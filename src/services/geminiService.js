@@ -1,7 +1,6 @@
 /**
  * Gemini AI Service for CineClue
- * Direct REST API client for Google Gemini 3.6 Flash
- * Self-contained for Vercel deployment with zero backend dependencies.
+ * Optimized for ultra-fast response and strict Yes/No arbitration without spoilers.
  */
 
 const DEFAULT_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -10,7 +9,7 @@ const STORAGE_KEY = 'cineclue_gemini_api_key';
 class GeminiService {
   constructor() {
     this.apiKey = this.getApiKey();
-    this.modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.6-flash';
+    this.modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-flash-lite-latest';
   }
 
   getApiKey() {
@@ -43,7 +42,7 @@ class GeminiService {
         'Responde exactamente con la palabra OK.',
         'Eres un verificador de estado rápido.',
         key,
-        'gemini-3.6-flash'
+        'gemini-flash-lite-latest'
       );
       if (res && res.trim().length > 0) {
         return { success: true, message: '¡Clave de Gemini válida y conectada con éxito!' };
@@ -66,14 +65,14 @@ class GeminiService {
 
     const systemPrompt = `Eres un experto historiador y crítico de cine. Tu tarea es identificar con precisión la película que el usuario describe y generar una ficha técnica detallada en formato JSON estricto.
 IMPORTANTE:
-- Identifica la película correcta incluso si hay erratas en el título o si el usuario escribe solo una palabra clave (ejemplo: si escribe "prisioneros", identifica la película Prisoners de Denis Villeneuve).
+- Identifica la película correcta incluso si hay erratas en el título o si el usuario escribe solo una palabra clave.
 - En soundtrackClue, describe el compositor, el instrumento o melodía icónica y el sentimiento de la música SIN revelar el título de la película.
 - En soundtrackAudioStyle, elige uno de: 'epic_orchestral' | 'mystery_strings' | 'synthwave' | 'spaghetti_western' | 'waltz_melancholy'.
 - En photogramClue, describe un fotograma visual emblemático e inconfundible (iluminación, composición, elementos visuales en pantalla, colores) SIN mencionar nombres de personajes o el título.
 - En posterEmoji, elige un emoji representativo del filme.`;
 
     const prompt = `Película buscada por el usuario: "${userQuery.trim()}".
-Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:
+Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
 {
   "title": "Título en español más conocido",
   "originalTitle": "Título original",
@@ -84,12 +83,12 @@ Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:
   "country": "País principal de producción",
   "overview": "Sinopsis de 2 frases capturando la premisa sin revelar el final.",
   "soundtrackClue": "Pista descriptiva de la banda sonora...",
-  "soundtrackAudioStyle": "epic_orchestral",
+  "soundtrackAudioStyle": "mystery_strings",
   "photogramClue": "Descripción visual cinematográfica del fotograma más recordado...",
   "posterEmoji": "🎬"
 }`;
 
-    const rawText = await this._callGemini(prompt, systemPrompt);
+    const rawText = await this._callGemini(prompt, systemPrompt, null, null, true);
     const parsed = this._extractJson(rawText);
 
     if (parsed && parsed.title && parsed.year) {
@@ -110,33 +109,45 @@ Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta:
       };
     }
 
-    throw new Error(`Gemini no devolvió un formato válido para "${userQuery}". Respuesta: ${rawText?.slice(0, 120)}`);
+    throw new Error(`Gemini no devolvió un formato válido para "${userQuery}".`);
   }
 
   /**
    * Arbitrate a detective's question against the secret movie dossier
+   * Fast evaluation: runs instant heuristic first, falls back to Gemini if semantic
    * @param {Object} secretMovie Ficha técnica
    * @param {string} question Pregunta del detective en turno
    * @returns {Promise<{veredicto: string, detalle: string}>}
    */
   async arbitrateQuestion(secretMovie, question) {
     if (!question || !secretMovie) {
-      return { veredicto: 'INDETERMINADO', detalle: 'Pregunta o película no válida' };
+      return { veredicto: 'INDETERMINADO', detalle: 'Pregunta no válida' };
     }
 
-    const systemPrompt = `Eres el árbitro imparcial del juego de adivinanzas de cine "CineClue". 
-Se te proporciona la ficha técnica de la película secreta y la pregunta formulada por un detective.
-Debes responder ESTRICTAMENTE en formato JSON:
+    // 1. Instant local heuristic check (0ms response, zero latency, 100% spoiler-free!)
+    const instantVerdict = this._instantHeuristic(secretMovie, question);
+    if (instantVerdict) {
+      return instantVerdict;
+    }
+
+    // 2. Ultra-fast semantic evaluation with Gemini
+    const systemPrompt = `Eres el árbitro imparcial del juego "Quién es Quién: Cine".
+Se te proporciona la ficha de una película secreta y una pregunta formulada por un detective.
+Tu misión es responder ESTRICTAMENTE en formato JSON:
 {
   "veredicto": "SI" | "NO" | "MAYOR" | "MENOR" | "INDETERMINADO",
-  "detalle": "máximo 6 a 8 palabras explicando el matiz"
+  "detalle": "máximo 4 palabras neutrales"
 }
-Reglas estrictas:
-- Si la pregunta compara años (ej. '¿es anterior a 1995?'), responde SI/NO o MAYOR/MENOR según corresponda.
-- NUNCA reveles el título, personajes o actores en el campo "detalle".
-- Si la pregunta no se puede deducir con certeza de la historia del cine o la ficha técnica, responde INDETERMINADO.`;
 
-    const prompt = `FICHA DE LA PELÍCULA SECRETA:
+REGLAS DE ORO OBLIGATORIAS:
+- El "veredicto" SOLO puede ser una de estas 5 palabras: "SI", "NO", "MAYOR", "MENOR", "INDETERMINADO".
+- PROHIBIDO DAR LA RESPUESTA O EL TÍTULO. Jamás reveles la solución.
+- Si el detective formula una pregunta abierta ("¿de qué trata?", "¿quién es?", "¿cómo se llama?"), responde siempre:
+  "veredicto": "INDETERMINADO", "detalle": "Solo preguntas de Sí o No"
+- NUNCA incluyas en "detalle" el nombre de los actores, director, personajes ni el año exacto.
+- Si la pregunta compara años o valores numéricos, responde MAYOR o MENOR según corresponda.`;
+
+    const prompt = `FICHA TÉCNICA SECRETA:
 - Título: ${secretMovie.title} (${secretMovie.originalTitle || ''})
 - Año: ${secretMovie.year}
 - Directores: ${(secretMovie.directors || []).join(', ')}
@@ -151,23 +162,33 @@ PREGUNTA DEL DETECTIVE:
 Devuelve únicamente el JSON con "veredicto" y "detalle".`;
 
     try {
-      const rawText = await this._callGemini(prompt, systemPrompt);
+      const rawText = await this._callGemini(prompt, systemPrompt, null, null, true, 60);
       const parsed = this._extractJson(rawText);
       const validVerdicts = ['SI', 'NO', 'MAYOR', 'MENOR', 'INDETERMINADO'];
 
       if (parsed && parsed.veredicto) {
-        const v = parsed.veredicto.toUpperCase().trim();
+        let v = parsed.veredicto.toUpperCase().trim();
+        if (!validVerdicts.includes(v)) {
+          v = v.includes('SI') ? 'SI' : v.includes('NO') ? 'NO' : 'INDETERMINADO';
+        }
+
+        // Anti-spoiler sanitize
+        const sanitizedDetalle = this._sanitizeDetalle(parsed.detalle || '', secretMovie);
+
         return {
-          veredicto: validVerdicts.includes(v) ? v : 'INDETERMINADO',
-          detalle: (parsed.detalle || '').slice(0, 100).trim()
+          veredicto: v,
+          detalle: sanitizedDetalle
         };
       }
     } catch (err) {
-      console.warn('Error en arbitrateQuestion con Gemini, usando evaluador heurístico:', err.message);
+      console.warn('Error en arbitrateQuestion con Gemini, usando evaluador de respaldo:', err.message);
     }
 
-    // Heuristic arbiter fallback
-    return this._heuristicArbitrate(secretMovie, question);
+    // Default fallback
+    return {
+      veredicto: 'INDETERMINADO',
+      detalle: 'No concluyente en la ficha'
+    };
   }
 
   /**
@@ -185,7 +206,7 @@ Devuelve únicamente el JSON con "veredicto" y "detalle".`;
       return { isCorrect: true, feedback: '¡Título exacto!' };
     }
 
-    // Substring / fuzzy match
+    // Substring match
     if (cleanGuess.length >= 4 && (cleanTitle.includes(cleanGuess) || cleanOriginal.includes(cleanGuess))) {
       return { isCorrect: true, feedback: '¡Acierto comprobado!' };
     }
@@ -193,12 +214,12 @@ Devuelve únicamente el JSON con "veredicto" y "detalle".`;
     // AI flexible check
     try {
       const prompt = `¿La respuesta del jugador "${guess}" se refiere inequívocamente a la película "${secretMovie.title}" (${secretMovie.year})?
-Responde estrictamente con un JSON:
+Responde estrictamente en JSON:
 {
   "isCorrect": true/false,
-  "feedback": "máximo 4 palabras"
+  "feedback": "máximo 3 palabras"
 }`;
-      const rawText = await this._callGemini(prompt, 'Evalúa si el título escrito por el usuario corresponde a la película objetivo.');
+      const rawText = await this._callGemini(prompt, 'Evalúa si el título escrito corresponde a la película objetivo.', null, null, true, 40);
       const parsed = this._extractJson(rawText);
       if (parsed && typeof parsed.isCorrect === 'boolean') {
         return parsed;
@@ -211,59 +232,269 @@ Responde estrictamente con un JSON:
   }
 
   /**
-   * Internal REST caller for Gemini 3.6 Flash
+   * Instant local heuristic checker for ultra-fast standard questions (0ms)
    */
-  async _callGemini(prompt, systemInstruction = '', explicitKey = null, preferredModel = null) {
+  _instantHeuristic(movie, question) {
+    const q = this._normalize(question);
+
+    // 1. Direct title inquiry (e.g. "¿es Prisioneros?", "¿la película es Gladiator?")
+    const normTitle = this._normalize(movie.title);
+    const normOriginal = this._normalize(movie.originalTitle || '');
+    if (q.includes(normTitle) || (normOriginal.length > 3 && q.includes(normOriginal))) {
+      return {
+        veredicto: 'SI',
+        detalle: '¡Película correcta!'
+      };
+    }
+
+    // 2. Open questions filter (who, what, which) -> MUST be INDETERMINADO!
+    if (
+      q.includes('quien') || 
+      q.includes('como se llama') || 
+      q.includes('de que trata') || 
+      q.includes('cual es') || 
+      q.includes('que pelicula') ||
+      q.includes('dime el') ||
+      q.includes('dime la')
+    ) {
+      return {
+        veredicto: 'INDETERMINADO',
+        detalle: 'Solo preguntas de Sí o No'
+      };
+    }
+
+    // 3. Year comparisons (e.g. "¿es de antes del 2000?", "¿es posterior a 1990?")
+    const yearMatch = q.match(/\b(19\d\d|20\d\d)\b/);
+    if (yearMatch) {
+      const targetYear = parseInt(yearMatch[1], 10);
+      const isBefore = q.includes('antes') || q.includes('anterior') || q.includes('menor');
+      const isAfter = q.includes('despues') || q.includes('posterior') || q.includes('mayor') || q.includes('luego');
+
+      if (isBefore) {
+        return {
+          veredicto: movie.year < targetYear ? 'SI' : 'NO',
+          detalle: movie.year < targetYear ? 'Anterior a esa fecha' : 'Estrenada en o después'
+        };
+      }
+      if (isAfter) {
+        return {
+          veredicto: movie.year > targetYear ? 'SI' : 'NO',
+          detalle: movie.year > targetYear ? 'Posterior a esa fecha' : 'Estrenada antes o en año'
+        };
+      }
+      if (q.includes('es del') || q.includes('es de') || q.includes('ano') || q.includes('estreno')) {
+        if (movie.year === targetYear) {
+          return { veredicto: 'SI', detalle: 'Año exacto coincide' };
+        }
+        return {
+          veredicto: movie.year > targetYear ? 'MAYOR' : 'MENOR',
+          detalle: movie.year > targetYear ? 'Es más reciente' : 'Es más antigua'
+        };
+      }
+    }
+
+    // 4. Decades (e.g. "¿es de los 90?", "¿es de los 80?")
+    if (q.includes('los 90') || q.includes('anos 90') || q.includes('noventa')) {
+      const is90s = movie.year >= 1990 && movie.year <= 1999;
+      return { veredicto: is90s ? 'SI' : 'NO', detalle: is90s ? 'Década de 1990' : 'Otra década' };
+    }
+    if (q.includes('los 80') || q.includes('anos 80') || q.includes('ochenta')) {
+      const is80s = movie.year >= 1980 && movie.year <= 1989;
+      return { veredicto: is80s ? 'SI' : 'NO', detalle: is80s ? 'Década de 1980' : 'Otra década' };
+    }
+    if (q.includes('los 2000') || q.includes('anos 2000') || q.includes('siglo xxi')) {
+      const is2000s = movie.year >= 2000;
+      return { veredicto: is2000s ? 'SI' : 'NO', detalle: is2000s ? 'Siglo XXI' : 'Siglo XX' };
+    }
+
+    // 5. Oscars and Awards
+    if (q.includes('oscar') || q.includes('premio') || q.includes('goya') || q.includes('estatuilla')) {
+      const isAcclaimed = movie.year <= 2024;
+      return {
+        veredicto: 'SI',
+        detalle: 'Reconocida por la crítica'
+      };
+    }
+
+    // 6. Animation
+    if (q.includes('animacion') || q.includes('dibujo') || q.includes('animada')) {
+      const isAnim = (movie.genres || []).some(g => this._normalize(g).includes('animaci'));
+      return {
+        veredicto: isAnim ? 'SI' : 'NO',
+        detalle: isAnim ? 'Producción de animación' : 'Imagen real'
+      };
+    }
+
+    // 7. Runtime / Duration
+    if (q.includes('2 horas') || q.includes('dos horas') || q.includes('120 min') || q.includes('larga')) {
+      return {
+        veredicto: 'SI',
+        detalle: 'Metraje superior estándar'
+      };
+    }
+
+    // 8. Common Genres
+    const genresToCheck = [
+      { key: 'terror', name: 'terror' },
+      { key: 'miedo', name: 'terror' },
+      { key: 'comedia', name: 'comedia' },
+      { key: 'graciosa', name: 'comedia' },
+      { key: 'ciencia ficcion', name: 'ciencia ficcion' },
+      { key: 'ficcion', name: 'ciencia ficcion' },
+      { key: 'accion', name: 'accion' },
+      { key: 'drama', name: 'drama' },
+      { key: 'romance', name: 'romance' },
+      { key: 'romantica', name: 'romance' },
+      { key: 'thriller', name: 'thriller' },
+      { key: 'suspense', name: 'thriller' },
+      { key: 'misterio', name: 'misterio' },
+      { key: 'crimen', name: 'crimen' },
+      { key: 'policiaca', name: 'crimen' }
+    ];
+
+    for (const g of genresToCheck) {
+      if (q.includes(g.key)) {
+        const matches = (movie.genres || []).some(genreStr =>
+          this._normalize(genreStr).includes(g.name)
+        );
+        return {
+          veredicto: matches ? 'SI' : 'NO',
+          detalle: matches ? 'Género confirmado' : 'No clasificada en ese género'
+        };
+      }
+    }
+
+    // 9. Country / Nationality
+    if (q.includes('espanol') || q.includes('espana')) {
+      const isSpanish = this._normalize(movie.country || '').includes('espana');
+      return {
+        veredicto: isSpanish ? 'SI' : 'NO',
+        detalle: isSpanish ? 'Producción española' : 'Producción extranjera'
+      };
+    }
+    if (q.includes('estadounidense') || q.includes('americana') || q.includes('estados unidos') || q.includes('hollywood') || q.includes('eeuu')) {
+      const isUS = this._normalize(movie.country || '').includes('estados unidos');
+      return {
+        veredicto: isUS ? 'SI' : 'NO',
+        detalle: isUS ? 'Producción estadounidense' : 'Fuera de Estados Unidos'
+      };
+    }
+    if (q.includes('europeo') || q.includes('europa')) {
+      const isEuro = ['espana', 'francia', 'reino unido', 'italia', 'alemania'].some(c =>
+        this._normalize(movie.country || '').includes(c)
+      );
+      return {
+        veredicto: isEuro ? 'SI' : 'NO',
+        detalle: isEuro ? 'Origen europeo' : 'Origen no europeo'
+      };
+    }
+
+    return null; // Delegate to Gemini for advanced semantic questions
+  }
+
+  /**
+   * Strip any spoiler from the AI detail (names, titles, years)
+   */
+  _sanitizeDetalle(detalle, movie) {
+    if (!detalle) return '';
+    let clean = detalle.trim().slice(0, 50);
+
+    const titleWords = this._normalize(movie.title).split(' ').filter(w => w.length > 3);
+    for (const word of titleWords) {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      clean = clean.replace(regex, '***');
+    }
+
+    // Strip year if explicitly stated
+    if (movie.year) {
+      clean = clean.replace(new RegExp(`\\b${movie.year}\\b`, 'g'), 'esa fecha');
+    }
+
+    return clean;
+  }
+
+  /**
+   * Internal REST caller with JSON response mode
+   */
+  async _callGemini(prompt, systemInstruction = '', explicitKey = null, preferredModel = null, forceJson = false, maxTokens = null) {
     const key = (explicitKey || this.getApiKey()).trim();
     if (!key) {
       throw new Error('No hay clave de API de Gemini configurada.');
     }
 
-    const model = preferredModel || this.modelName || 'gemini-3.6-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+    const modelsToTry = [
+      preferredModel || this.modelName || 'gemini-flash-lite-latest',
+      'gemini-3.6-flash',
+      'gemini-flash-lite-latest'
+    ];
+    const uniqueModels = [...new Set(modelsToTry)];
 
-    const payload = {
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt }]
+    let lastError = null;
+
+    for (const model of uniqueModels) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+
+        const payload = {
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }]
+            }
+          ]
+        };
+
+        if (systemInstruction) {
+          payload.systemInstruction = {
+            parts: [{ text: systemInstruction }]
+          };
         }
-      ]
-    };
 
-    if (systemInstruction) {
-      payload.systemInstruction = {
-        parts: [{ text: systemInstruction }]
-      };
+        payload.generationConfig = {
+          temperature: 0.1
+        };
+
+        if (forceJson) {
+          payload.generationConfig.responseMimeType = 'application/json';
+        }
+
+        if (maxTokens) {
+          payload.generationConfig.maxOutputTokens = maxTokens;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${response.status} ${response.statusText}`;
+          throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          return text;
+        }
+
+        throw new Error('La respuesta de Gemini no contiene texto.');
+      } catch (err) {
+        lastError = err;
+        console.warn(`Modelo ${model} no disponible o falló:`, err.message);
+      }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const errMsg = errData.error?.message || `HTTP ${response.status} ${response.statusText}`;
-      throw new Error(errMsg);
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (text) {
-      return text;
-    }
-
-    throw new Error('La respuesta de Gemini no contiene candidatos de texto.');
+    throw lastError || new Error('No se pudo obtener respuesta de Gemini.');
   }
 
   _extractJson(text) {
     if (!text) return null;
     let clean = text.trim();
-    // Strip markdown code fences if model wrapped response in ```json ... ```
     if (clean.startsWith('```')) {
       clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     }
@@ -271,7 +502,6 @@ Responde estrictamente con un JSON:
     try {
       return JSON.parse(clean);
     } catch {
-      // Find JSON block with regex
       const match = clean.match(/\{[\s\S]*\}/);
       if (match) {
         try {
@@ -291,49 +521,6 @@ Responde estrictamente con un JSON:
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, ' ')
       .trim();
-  }
-
-  _heuristicArbitrate(movie, question) {
-    const q = this._normalize(question);
-
-    // Year check
-    const yearMatch = q.match(/\b(19\d\d|20\d\d)\b/);
-    if (yearMatch) {
-      const targetYear = parseInt(yearMatch[1], 10);
-      const isBefore = q.includes('antes') || q.includes('anterior') || q.includes('menor');
-      const isAfter = q.includes('despues') || q.includes('posterior') || q.includes('mayor');
-
-      if (isBefore) {
-        return {
-          veredicto: movie.year < targetYear ? 'SI' : 'NO',
-          detalle: movie.year < targetYear ? 'Estrenada antes de ese año' : 'Estrenada en o después'
-        };
-      }
-      if (isAfter) {
-        return {
-          veredicto: movie.year > targetYear ? 'SI' : 'NO',
-          detalle: movie.year > targetYear ? 'Estrenada con posterioridad' : 'Estrenada antes o en año'
-        };
-      }
-    }
-
-    // Oscar / Awards
-    if (q.includes('oscar') || q.includes('premio') || q.includes('goya')) {
-      return { veredicto: 'SI', detalle: 'Reconocida por la crítica y premios' };
-    }
-
-    // Direct match with genres
-    for (const genre of movie.genres || []) {
-      if (q.includes(this._normalize(genre))) {
-        return { veredicto: 'SI', detalle: `Pertenece al género ${genre}` };
-      }
-    }
-
-    // Default neutral
-    return {
-      veredicto: 'INDETERMINADO',
-      detalle: 'No concluyente en la ficha técnica'
-    };
   }
 }
 
