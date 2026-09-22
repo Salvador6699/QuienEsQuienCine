@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Key, Film, Sparkles, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import { API_BASE_URL } from '../services/socket';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const [geminiKey, setGeminiKey] = useState('');
@@ -12,7 +13,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      fetch('/api/config')
+      fetch(`${API_BASE_URL}/api/config`)
         .then(r => r.json())
         .then(data => {
           setStatus({
@@ -32,7 +33,7 @@ export default function SettingsModal({ isOpen, onClose }) {
     setLoading(true);
     setSaveSuccess(false);
     try {
-      const res = await fetch('/api/config', {
+      const res = await fetch(`${API_BASE_URL}/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,7 +60,7 @@ export default function SettingsModal({ isOpen, onClose }) {
     setLoading(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/referee/test', {
+      const res = await fetch(`${API_BASE_URL}/api/referee/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,9 +1,10 @@
 import { io } from 'socket.io-client';
 
-// In development, Vite proxies or connects directly to localhost:3001
-const URL = window.location.port === '5173' ? 'http://localhost:3001' : '/';
+// In development, connects to localhost:3001
+// In production, uses VITE_BACKEND_URL or VITE_API_URL if configured, otherwise same-origin
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || (window.location.port === '5173' ? 'http://localhost:3001' : '');
 
-export const socket = io(URL, {
+export const socket = io(API_BASE_URL || '/', {
   autoConnect: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 1000

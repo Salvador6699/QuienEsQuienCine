@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Film, Check, Lock, Sparkles, AlertCircle, Clock, Calendar, Globe2, User, Clapperboard } from 'lucide-react';
-import { socketService } from '../services/socket';
+import { socketService, API_BASE_URL } from '../services/socket';
 import { sounds } from '../utils/audio';
 
 export default function MovieSelector({ room, myPlayerId }) {
@@ -31,7 +31,7 @@ export default function MovieSelector({ room, myPlayerId }) {
       setLoadingSearch(true);
       setError('');
       try {
-        const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        const res = await fetch(`${API_BASE_URL}/api/tmdb/search?q=${encodeURIComponent(searchQuery.trim())}`);
         const data = await res.json();
         setSearchResults(data.results || []);
       } catch (err) {
@@ -49,7 +49,7 @@ export default function MovieSelector({ room, myPlayerId }) {
     setLoadingDetails(true);
     sounds.playClapperSnap();
     try {
-      const res = await fetch(`/api/tmdb/movie/${movie.id}`);
+      const res = await fetch(`${API_BASE_URL}/api/tmdb/movie/${movie.id}`);
       const data = await res.json();
       setSelectedMovie(data.movie || movie);
     } catch {
