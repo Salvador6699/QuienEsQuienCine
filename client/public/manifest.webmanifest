@@ -1,0 +1,18 @@
+{
+  "name": "CineClue - Quién es Quién de Cine",
+  "short_name": "CineClue",
+  "description": "Juego multijugador en tiempo real de adivinanzas de cine con árbitro IA Gemini",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0D13",
+  "theme_color": "#0B0D13",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/clapperboard.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

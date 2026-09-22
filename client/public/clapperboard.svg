@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E2230" />
+      <stop offset="100%" stop-color="#0F111A" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Disc -->
+  <circle cx="256" cy="256" r="240" fill="#0B0D13" stroke="url(#goldGrad)" stroke-width="12" />
+
+  <!-- Clapper Body -->
+  <rect x="100" y="210" width="312" height="200" rx="16" fill="url(#bodyGrad)" stroke="#374151" stroke-width="4" />
+  
+  <!-- Film Slate Lines -->
+  <line x1="120" y1="280" x2="392" y2="280" stroke="#4B5563" stroke-width="2" stroke-dasharray="6 6" />
+  <line x1="256" y1="280" x2="256" y2="390" stroke="#4B5563" stroke-width="2" stroke-dasharray="6 6" />
+  
+  <!-- Text on Board -->
+  <text x="180" y="255" font-family="'Cinzel', serif" font-weight="900" font-size="26" fill="url(#goldGrad)" text-anchor="middle">CINECLUE</text>
+  <text x="340" y="255" font-family="'JetBrains Mono', monospace" font-size="16" fill="#9CA3AF" text-anchor="middle">TAKE 1</text>
+  <text x="188" y="340" font-family="'JetBrains Mono', monospace" font-size="14" fill="#6B7280" text-anchor="middle">SCENE: 01</text>
+  <text x="324" y="340" font-family="'JetBrains Mono', monospace" font-size="14" fill="#6B7280" text-anchor="middle">ROLL: IA</text>
+
+  <!-- Clapper Top Stick (Tilted) -->
+  <g transform="rotate(-15 100 190)">
+    <rect x="90" y="160" width="330" height="42" rx="8" fill="#181A22" stroke="url(#goldGrad)" stroke-width="4" />
+    <!-- Chevrons -->
+    <path d="M130 162 L155 200 L180 200 L155 162 Z" fill="#FBBF24" />
+    <path d="M210 162 L235 200 L260 200 L235 162 Z" fill="#FBBF24" />
+    <path d="M290 162 L315 200 L340 200 L315 162 Z" fill="#FBBF24" />
+    <path d="M370 162 L395 200 L415 200 L390 162 Z" fill="#FBBF24" />
+  </g>
+</svg>
