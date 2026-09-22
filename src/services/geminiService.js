@@ -1,6 +1,6 @@
 /**
  * Gemini AI Service for CineClue
- * Optimized for ultra-fast response and strict Yes/No arbitration without spoilers.
+ * Optimized for ultra-fast response, real movie frame images, and real official soundtrack audio.
  */
 
 const DEFAULT_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -55,8 +55,9 @@ class GeminiService {
 
   /**
    * Search and generate complete dossier for a movie typed by Player A
+   * Also fetches real movie frame image and real soundtrack audio preview.
    * @param {string} userQuery Título o descripción escrita por el Jugador A
-   * @returns {Promise<Object>} Ficha técnica completa con pistas de BSO y Fotograma
+   * @returns {Promise<Object>} Ficha técnica completa con imagen real y audio real
    */
   async searchAndDetailMovie(userQuery) {
     if (!userQuery || userQuery.trim().length === 0) {
@@ -66,9 +67,7 @@ class GeminiService {
     const systemPrompt = `Eres un experto historiador y crítico de cine. Tu tarea es identificar con precisión la película que el usuario describe y generar una ficha técnica detallada en formato JSON estricto.
 IMPORTANTE:
 - Identifica la película correcta incluso si hay erratas en el título o si el usuario escribe solo una palabra clave.
-- En soundtrackClue, describe el compositor, el instrumento o melodía icónica y el sentimiento de la música SIN revelar el título de la película.
-- En soundtrackAudioStyle, elige uno de: 'epic_orchestral' | 'mystery_strings' | 'synthwave' | 'spaghetti_western' | 'waltz_melancholy'.
-- En photogramClue, describe un fotograma visual emblemático e inconfundible (iluminación, composición, elementos visuales en pantalla, colores) SIN mencionar nombres de personajes o el título.
+- En composer, incluye el nombre del compositor principal de la banda sonora (ej. Hans Zimmer, John Williams, Jóhann Jóhannsson).
 - En posterEmoji, elige un emoji representativo del filme.`;
 
     const prompt = `Película buscada por el usuario: "${userQuery.trim()}".
@@ -82,9 +81,8 @@ Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
   "genres": ["Género 1", "Género 2"],
   "country": "País principal de producción",
   "overview": "Sinopsis de 2 frases capturando la premisa sin revelar el final.",
-  "soundtrackClue": "Pista descriptiva de la banda sonora...",
-  "soundtrackAudioStyle": "mystery_strings",
-  "photogramClue": "Descripción visual cinematográfica del fotograma más recordado...",
+  "composer": "Nombre del compositor principal",
+  "soundtrackClue": "Breve frase sobre la música sin decir el título",
   "posterEmoji": "🎬"
 }`;
 
@@ -92,6 +90,14 @@ Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
     const parsed = this._extractJson(rawText);
 
     if (parsed && parsed.title && parsed.year) {
+      // Fetch real media assets (image and audio) in parallel
+      const mediaAssets = await this._fetchMediaAssets(
+        parsed.title,
+        parsed.originalTitle || parsed.title,
+        parsed.year,
+        parsed.composer
+      );
+
       return {
         id: Date.now(),
         title: parsed.title,
@@ -102,10 +108,11 @@ Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
         genres: Array.isArray(parsed.genres) ? parsed.genres : ['Cine'],
         country: parsed.country || 'Internacional',
         overview: parsed.overview || 'Sinopsis clásica del filme.',
-        soundtrackClue: parsed.soundtrackClue || 'Melodía característica que define el ritmo y la atmósfera de la cinta.',
-        soundtrackAudioStyle: parsed.soundtrackAudioStyle || 'mystery_strings',
-        photogramClue: parsed.photogramClue || 'Un plano con iluminación dramática y elementos visuales característicos.',
-        posterEmoji: parsed.posterEmoji || '🎬'
+        composer: parsed.composer || 'Compositor de cine',
+        soundtrackClue: parsed.soundtrackClue || `Banda sonora compuesta por ${parsed.composer || 'orquesta'}`,
+        posterEmoji: parsed.posterEmoji || '🎬',
+        frameImage: mediaAssets.frameImage || null,
+        audio: mediaAssets.audio || null
       };
     }
 
@@ -113,11 +120,62 @@ Devuelve ÚNICAMENTE un objeto JSON con esta estructura exacta:
   }
 
   /**
+   * Fetch real movie frame image from OMDb and real audio preview from iTunes
+   */
+  async _fetchMediaAssets(title, originalTitle, year, composer) {
+    let frameImage = null;
+    let audio = null;
+
+    // 1. Fetch real movie image from OMDb
+    const imageQueries = [originalTitle, title].filter(Boolean);
+    for (const q of imageQueries) {
+      try {
+        const res = await fetch(`https://www.omdbapi.com/?apikey=trilogy&t=${encodeURIComponent(q)}&y=${year || ''}`);
+        const d = await res.json();
+        if (d.Response === 'True' && d.Poster && d.Poster !== 'N/A') {
+          frameImage = d.Poster;
+          break;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Fetch real official audio preview from iTunes Search API
+    const audioQueries = [];
+    if (composer) {
+      audioQueries.push(`${composer} ${originalTitle || title}`);
+    }
+    audioQueries.push(`${originalTitle || title} soundtrack`);
+    audioQueries.push(originalTitle || title);
+
+    for (const q of audioQueries) {
+      try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=3`);
+        const d = await res.json();
+        if (d.results && d.results.length > 0) {
+          const match = d.results.find(r => r.previewUrl);
+          if (match) {
+            audio = {
+              url: match.previewUrl,
+              track: match.trackName,
+              artist: match.artistName,
+              artwork: match.artworkUrl100
+            };
+            break;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return { frameImage, audio };
+  }
+
+  /**
    * Arbitrate a detective's question against the secret movie dossier
-   * Fast evaluation: runs instant heuristic first, falls back to Gemini if semantic
-   * @param {Object} secretMovie Ficha técnica
-   * @param {string} question Pregunta del detective en turno
-   * @returns {Promise<{veredicto: string, detalle: string}>}
+   * Instant heuristic check first (0ms), fallback to Gemini with strict Yes/No.
    */
   async arbitrateQuestion(secretMovie, question) {
     if (!question || !secretMovie) {
@@ -181,10 +239,9 @@ Devuelve únicamente el JSON con "veredicto" y "detalle".`;
         };
       }
     } catch (err) {
-      console.warn('Error en arbitrateQuestion con Gemini, usando evaluador de respaldo:', err.message);
+      console.warn('Error en arbitrateQuestion con Gemini:', err.message);
     }
 
-    // Default fallback
     return {
       veredicto: 'INDETERMINADO',
       detalle: 'No concluyente en la ficha'
@@ -237,7 +294,7 @@ Responde estrictamente en JSON:
   _instantHeuristic(movie, question) {
     const q = this._normalize(question);
 
-    // 1. Direct title inquiry (e.g. "¿es Prisioneros?", "¿la película es Gladiator?")
+    // 1. Direct title inquiry
     const normTitle = this._normalize(movie.title);
     const normOriginal = this._normalize(movie.originalTitle || '');
     if (q.includes(normTitle) || (normOriginal.length > 3 && q.includes(normOriginal))) {
@@ -247,7 +304,7 @@ Responde estrictamente en JSON:
       };
     }
 
-    // 2. Open questions filter (who, what, which) -> MUST be INDETERMINADO!
+    // 2. Open questions filter -> MUST be INDETERMINADO!
     if (
       q.includes('quien') || 
       q.includes('como se llama') || 
@@ -263,7 +320,7 @@ Responde estrictamente en JSON:
       };
     }
 
-    // 3. Year comparisons (e.g. "¿es de antes del 2000?", "¿es posterior a 1990?")
+    // 3. Year comparisons
     const yearMatch = q.match(/\b(19\d\d|20\d\d)\b/);
     if (yearMatch) {
       const targetYear = parseInt(yearMatch[1], 10);
@@ -293,7 +350,7 @@ Responde estrictamente en JSON:
       }
     }
 
-    // 4. Decades (e.g. "¿es de los 90?", "¿es de los 80?")
+    // 4. Decades
     if (q.includes('los 90') || q.includes('anos 90') || q.includes('noventa')) {
       const is90s = movie.year >= 1990 && movie.year <= 1999;
       return { veredicto: is90s ? 'SI' : 'NO', detalle: is90s ? 'Década de 1990' : 'Otra década' };
@@ -309,7 +366,6 @@ Responde estrictamente en JSON:
 
     // 5. Oscars and Awards
     if (q.includes('oscar') || q.includes('premio') || q.includes('goya') || q.includes('estatuilla')) {
-      const isAcclaimed = movie.year <= 2024;
       return {
         veredicto: 'SI',
         detalle: 'Reconocida por la crítica'
@@ -389,12 +445,9 @@ Responde estrictamente en JSON:
       };
     }
 
-    return null; // Delegate to Gemini for advanced semantic questions
+    return null;
   }
 
-  /**
-   * Strip any spoiler from the AI detail (names, titles, years)
-   */
   _sanitizeDetalle(detalle, movie) {
     if (!detalle) return '';
     let clean = detalle.trim().slice(0, 50);
@@ -405,7 +458,6 @@ Responde estrictamente en JSON:
       clean = clean.replace(regex, '***');
     }
 
-    // Strip year if explicitly stated
     if (movie.year) {
       clean = clean.replace(new RegExp(`\\b${movie.year}\\b`, 'g'), 'esa fecha');
     }
@@ -413,9 +465,6 @@ Responde estrictamente en JSON:
     return clean;
   }
 
-  /**
-   * Internal REST caller with JSON response mode
-   */
   async _callGemini(prompt, systemInstruction = '', explicitKey = null, preferredModel = null, forceJson = false, maxTokens = null) {
     const key = (explicitKey || this.getApiKey()).trim();
     if (!key) {
@@ -485,7 +534,6 @@ Responde estrictamente en JSON:
         throw new Error('La respuesta de Gemini no contiene texto.');
       } catch (err) {
         lastError = err;
-        console.warn(`Modelo ${model} no disponible o falló:`, err.message);
       }
     }
 

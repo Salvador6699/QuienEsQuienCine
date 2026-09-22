@@ -68,20 +68,20 @@ export default function RulesModal({ isOpen, onClose }) {
               <div className="p-2.5 rounded-lg bg-[#121620] border border-amber-500/30 flex items-center gap-2">
                 <Music className="w-4 h-4 text-amber-400 flex-shrink-0" />
                 <div>
-                  <strong className="text-amber-300">Pista Banda Sonora:</strong>
-                  <div className="text-[11px] text-gray-400">Resta 20 puntos del pozo</div>
+                  <strong className="text-amber-300">Pista Audio BSO (-20 pts):</strong>
+                  <div className="text-[11px] text-gray-400">Reproduce el audio real oficial de la película</div>
                 </div>
               </div>
               <div className="p-2.5 rounded-lg bg-[#121620] border border-cyan-500/30 flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                 <div>
-                  <strong className="text-cyan-300">Pista Fotograma:</strong>
-                  <div className="text-[11px] text-gray-400">Resta 20 puntos del pozo</div>
+                  <strong className="text-cyan-300">Pista Fotograma (-20 pts):</strong>
+                  <div className="text-[11px] text-gray-400">Muestra la imagen real oficial de la película</div>
                 </div>
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              El detective que acierte la película se adjudica todos los puntos restantes de la ronda (100, 80 o 60 pts).
+              * Cada pregunta formulada a la IA resta <strong>1 punto</strong> del pozo de la ronda.
             </p>
           </div>
 

@@ -79,9 +79,10 @@ export default function App() {
     setCurrentPoints((prev) => Math.max(0, prev - 20));
   };
 
-  // Add question from active detective
+  // Add question from active detective (each question deducts 1 point)
   const handleAddQuestion = (questionItem) => {
     setQuestionHistory((prev) => [...prev, questionItem]);
+    setCurrentPoints((prev) => Math.max(0, prev - 1));
   };
 
   // Cycle to the next detective turn

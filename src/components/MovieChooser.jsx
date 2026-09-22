@@ -205,23 +205,41 @@ export default function MovieChooser({ director, onConfirmMovie }) {
                 </p>
 
                 {/* Clues Preview (Visible to Director so they know what will be given) */}
-                <div className="space-y-2 mb-5">
+                <div className="space-y-3 mb-5">
                   <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Pistas secretas que la IA tiene listas:
+                    Pistas reales que la IA tiene listas:
                   </div>
 
-                  <div className="p-3 rounded-xl bg-[#0e121c] border border-gray-800 flex items-start gap-2.5 text-xs text-gray-300">
-                    <Music className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-amber-400">Pista BSO (-20 pts):</strong> {candidate.soundtrackClue}
+                  <div className="p-3 rounded-xl bg-[#0e121c] border border-gray-800 flex items-center justify-between gap-3 text-xs text-gray-300">
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Music className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <div className="truncate">
+                        <strong className="text-amber-400">Audio BSO (-20 pts):</strong>{' '}
+                        <span>{candidate.audio?.track ? `"${candidate.audio.track}"` : candidate.soundtrackClue}</span>
+                      </div>
                     </div>
+                    {candidate.audio?.url && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono flex-shrink-0">
+                        Audio Listo
+                      </span>
+                    )}
                   </div>
 
-                  <div className="p-3 rounded-xl bg-[#0e121c] border border-gray-800 flex items-start gap-2.5 text-xs text-gray-300">
-                    <ImageIcon className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-cyan-400">Pista Fotograma (-20 pts):</strong> {candidate.photogramClue}
+                  <div className="p-3 rounded-xl bg-[#0e121c] border border-gray-800 flex items-center justify-between gap-3 text-xs text-gray-300">
+                    <div className="flex items-center gap-2.5 truncate">
+                      <ImageIcon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                      <div className="truncate">
+                        <strong className="text-cyan-400">Fotograma (-20 pts):</strong>{' '}
+                        <span>{candidate.frameImage ? 'Imagen oficial encontrada' : 'Fotograma cinematográfico'}</span>
+                      </div>
                     </div>
+                    {candidate.frameImage && (
+                      <img
+                        src={candidate.frameImage}
+                        alt="Fotograma previo"
+                        className="w-10 h-10 object-cover rounded-lg border border-cyan-500/30 flex-shrink-0"
+                      />
+                    )}
                   </div>
                 </div>
 

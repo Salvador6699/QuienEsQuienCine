@@ -129,16 +129,16 @@ export default function SetupView({ onStartGame, onOpenApiKeyModal }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-400">
             <div className="bg-[#121620] p-2.5 rounded-lg border border-gray-800 flex items-center justify-between">
-              <span>Solo con preguntas:</span>
-              <span className="font-bold text-emerald-400">100 pts</span>
+              <span>Cada pregunta:</span>
+              <span className="font-bold text-orange-400">-1 pt</span>
             </div>
             <div className="bg-[#121620] p-2.5 rounded-lg border border-gray-800 flex items-center justify-between">
-              <span>Pista Banda Sonora:</span>
+              <span>Audio BSO real:</span>
               <span className="font-bold text-amber-400">-20 pts</span>
             </div>
             <div className="bg-[#121620] p-2.5 rounded-lg border border-gray-800 flex items-center justify-between">
-              <span>Pista Fotograma:</span>
-              <span className="font-bold text-amber-400">-20 pts</span>
+              <span>Fotograma real:</span>
+              <span className="font-bold text-cyan-400">-20 pts</span>
             </div>
           </div>
         </div>
