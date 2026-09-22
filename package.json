@@ -1,15 +1,25 @@
 {
-  "name": "cineclue-root",
-  "version": "1.0.0",
+  "name": "cineclue",
   "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ],
+  "version": "2.0.0",
+  "type": "module",
   "scripts": {
-    "dev:server": "npm --prefix server run dev",
-    "dev:client": "npm --prefix client run dev",
-    "build": "npm --prefix client install && npm --prefix client run build",
-    "start": "npm --prefix server start"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "canvas-confetti": "^1.9.4",
+    "lucide-react": "^1.47.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.0"
   }
 }

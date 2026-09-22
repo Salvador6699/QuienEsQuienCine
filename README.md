@@ -1,91 +1,53 @@
-# 🎬 CineClue - ¿Quién es Quién de Cine? (PWA Multijugador)
+# 🎬 CineClue - ¿Quién es Quién de Cine? (Vercel Edition)
 
-Progressive Web Application (PWA) multijugador en tiempo real basada en el clásico juego "Quién es Quién", adaptado al mundo del cine con metadatos oficiales de **TMDB (The Movie Database)** y **Gemini 3.8 Flash** como Árbitro IA imparcial oficial.
+Juego de deducción cinematográfica directo y sin servidores complejos, listo para **despliegue inmediato en Vercel**, con **Gemini AI** como árbitro imparcial oficial y motor de cine.
 
 ---
 
 ## 🌟 Características Principales
 
-1. **Multijugador en Tiempo Real (2 a 8 jugadores)**:
-   - Creación de salas privadas con código de 6 caracteres y enlace compartible.
-   - Sincronización instantánea con WebSockets (Socket.io).
-   - Chat y camerino de espera interactivo.
+1. **100% Vercel & Sin Multisalas**:
+   - Todo el juego se ejecuta en el navegador mediante React + Vite.
+   - Sin servidores Node.js ni WebSockets que se desconecten o requieran configuración adicional.
 
-2. **Fase de Preparación Segura**:
-   - Cada jugador busca y elige en secreto una película real del catálogo de TMDB con autocompletado en vivo.
-   - La ficha técnica (año, dirección, reparto, géneros, país, sinopsis, premios) se almacena **estrictamente en el servidor** (anti-trampas).
+2. **2, 3 o 4 Jugadores**:
+   - **Director**: Elige en secreto la película con ayuda de Gemini.
+   - **Detectives**: Toman turnos rotativos ordenados (*Round-Robin*) para interrogar a la IA, solicitar pistas y adivinar.
+   - Rotación automática de roles entre rondas.
 
-3. **Árbitro IA Oficial (Gemini 3.8 Flash)**:
-   - En su turno, el jugador formula preguntas en lenguaje natural dirigidas a un rival o a todos (*"¿Es de antes del 2000?"*, *"¿Ganó algún Oscar?"*, *"¿El director es europeo?"*).
-   - Gemini responde exclusivamente con formato JSON estructurado:
-     - `[SÍ]`
-     - `[NO]`
-     - `[MAYOR]` (comparaciones temporales/numéricas)
-     - `[MENOR]`
-     - `[INDETERMINADO]` (preguntas subjetivas o no comprobables)
-     - Aclaración de máximo 6 palabras sin revelar nombres ni el título.
-   - *Modo Heurístico de Respaldo*: Permite jugar inmediatamente incluso sin claves API configuradas.
+3. **Búsqueda y Confirmación por IA**:
+   - El Director escribe cualquier película (incluso con erratas o sinopsis).
+   - Gemini extrae la ficha técnica completa y el Director confirma con un clic (*"¡Sí, es esta!"*) antes de comenzar la ronda.
 
-4. **Mecánica de Resolución y Vidas**:
-   - Botón **"Resolver / Adivinar Película"** con 2 vidas de resolución.
-   - Si fallas pierdes un intento; al llegar a 0 vidas quedas eliminado.
-   - Si aciertas, la película rival se revela al público. Gana el jugador que descubra todas las películas o el último en pie.
+4. **Sistema de Puntos y Pistas (100 pts base)**:
+   - **100 puntos** si los detectives adivinan únicamente haciendo preguntas a la IA.
+   - **Pista de Banda Sonora**: Resta **20 puntos** (revela compositor, estilo y sintetizador de audio).
+   - **Pista de Fotograma**: Resta **20 puntos** (revela descripción del plano visual más icónico).
+   - Puntuación al acertar: **100, 80 o 60 puntos**.
 
-5. **PWA & Experiencia Cinematográfica**:
-   - Estética oscura *Noir Cinema* (paleta ámbar Óscar, carmesí y negro pizarra).
-   - Efectos de sonido sintetizados mediante HTML5 Web Audio API (claqueta, veredictos, fanfarria).
-   - Libreta del detective privada con pistas descartables.
-   - Instalable en móviles y escritorio mediante Service Worker y Web Manifest.
+5. **Árbitro Inteligente Gemini**:
+   - Evalúa cada pregunta con: `[SÍ]`, `[NO]`, `[MAYOR]`, `[MENOR]`, `[INDETERMINADO]` y un breve matiz explicativo sin hacer spoilers.
 
 ---
 
 ## 🚀 Puesta en Marcha Rápida
 
-### 1. Iniciar el Servidor y la Aplicación
+### Entrar en modo desarrollo:
 
 ```bash
-# Iniciar servidor completo (Backend + Frontend compilado en puerto 3001)
-npm start
+npm run dev
 ```
 
-Abre tu navegador en: **`http://localhost:3001`**
+Abre tu navegador en `http://localhost:5173`.
 
-### 2. Desarrollo con Hot-Reload (Opcional)
-
-Si deseas modificar el frontend con recarga instantánea:
+### Compilar para producción (Vercel):
 
 ```bash
-# Terminal 1: Backend
-npm run dev:server
-
-# Terminal 2: Frontend Vite
-npm run dev:client
+npm run build
 ```
 
 ---
 
-## 🔑 Configuración de Claves API (Opcional)
+## 🔑 Clave de Gemini
 
-CineClue incluye un catálogo pre-cargado de más de 50 películas clásicas y un árbitro heurístico para que funcione sin necesidad de configurar claves.
-
-Para activar la búsqueda completa en TMDB y el modelo Gemini oficial, puedes configurar las claves de dos formas:
-
-### Opción A: Desde el modal de "Ajustes" (⚙️) en la propia aplicación
-Haz clic en el icono de engranaje en la barra superior de la app, pega tus claves y pulsa **Guardar Ajustes**.
-
-### Opción B: En el archivo `server/.env`
-```env
-PORT=3001
-GEMINI_API_KEY=tu_clave_de_google_ai_studio
-TMDB_API_KEY=tu_clave_de_the_movie_database
-GEMINI_MODEL=gemini-2.5-flash
-```
-
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **Frontend**: React 19, Tailwind CSS v4, Lucide Icons, Canvas Confetti, Web Audio API, PWA (Service Worker + Web Manifest).
-- **Backend**: Node.js, Express, Socket.io (WebSockets).
-- **Integración IA**: Google GenAI SDK (`@google/genai`) con Structured Outputs (JSON Schema).
-- **Datos Cinematográficos**: TMDB API v3 con fallback a base de datos interna.
+La clave se encuentra configurada en el archivo `.env` (`VITE_GEMINI_API_KEY`) y también puedes cambiarla o probarla directamente desde el botón con el icono de llave 🔑 en la barra superior del juego.
