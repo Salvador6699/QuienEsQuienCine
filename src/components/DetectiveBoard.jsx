@@ -359,21 +359,33 @@ export default function DetectiveBoard({
             {cluesUsed.photogram ? (
               <div className="animate-fadeIn">
                 <div
-                  className="relative rounded-xl overflow-hidden border border-cyan-500/30 bg-black cursor-pointer group"
+                  className="relative rounded-xl overflow-hidden border border-cyan-500/40 bg-black cursor-pointer group shadow-lg"
                   onClick={() => setZoomImage(true)}
+                  title="Clic para ampliar fotograma"
                 >
-                  <img
-                    src={frameImageUrl}
-                    alt="Fotograma oficial de la película"
-                    className="w-full h-44 object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-2.5">
-                    <span className="text-[11px] text-gray-200 font-medium flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                      Clic para ampliar fotograma
-                    </span>
-                    <Maximize2 className="w-4 h-4 text-cyan-300" />
+                  {/* 16:9 cinema crop focusing on the scene, cutting off poster titles and bottom credits */}
+                  <div className="relative w-full aspect-video overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src={frameImageUrl}
+                      alt="Fotograma de escena cinematográfica"
+                      className="w-full h-full object-cover object-[center_28%] scale-[1.75] group-hover:scale-[1.82] transition-transform duration-300 filter brightness-95"
+                    />
+
+                    {/* Cinematic matte letterbox bars */}
+                    <div className="absolute top-0 inset-x-0 h-4 bg-black/90 z-10 flex items-center justify-between px-2">
+                      <span className="text-[8px] font-mono tracking-widest text-gray-500 uppercase">35mm Cinema Still</span>
+                      <Maximize2 className="w-3 h-3 text-cyan-400 opacity-80" />
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 h-5 bg-black/90 z-10 flex items-center px-2">
+                      <span className="text-[8px] font-mono tracking-wider text-cyan-400/90 uppercase">Encuadre Escénico (Sin Título)</span>
+                    </div>
                   </div>
+
+                  {movie.photogramClue && (
+                    <div className="p-2 bg-[#0e121c] border-t border-cyan-500/20 text-[11px] text-gray-300 italic">
+                      "{movie.photogramClue}"
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -575,13 +587,28 @@ export default function DetectiveBoard({
                   Fotograma Oficial
                 </div>
 
-                <div className="rounded-xl overflow-hidden border border-cyan-500/30 mb-4 bg-black">
-                  <img
-                    src={frameImageUrl}
-                    alt="Fotograma de la película"
-                    className="w-full h-56 object-cover object-center"
-                  />
+                <div className="rounded-xl overflow-hidden border border-cyan-500/40 mb-3 bg-black relative shadow-xl">
+                  {/* Mobile 16:9 cinema crop */}
+                  <div className="relative w-full aspect-video overflow-hidden bg-black flex items-center justify-center">
+                    <img
+                      src={frameImageUrl}
+                      alt="Fotograma de la película"
+                      className="w-full h-full object-cover object-[center_28%] scale-[1.75]"
+                    />
+                    <div className="absolute top-0 inset-x-0 h-4 bg-black/90 z-10 flex items-center px-2">
+                      <span className="text-[8px] font-mono tracking-widest text-gray-500 uppercase">35mm Cinema Frame</span>
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 h-4 bg-black/90 z-10 flex items-center px-2">
+                      <span className="text-[8px] font-mono text-cyan-400 uppercase">Encuadre Escénico</span>
+                    </div>
+                  </div>
                 </div>
+
+                {movie.photogramClue && (
+                  <div className="p-2.5 rounded-lg bg-[#0e121c] border border-cyan-500/20 text-xs text-gray-300 italic mb-4">
+                    "{movie.photogramClue}"
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -599,21 +626,37 @@ export default function DetectiveBoard({
       {/* Fullscreen Image Lightbox */}
       {zoomImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md cursor-pointer animate-fadeIn"
           onClick={() => setZoomImage(false)}
         >
-          <div className="relative max-w-2xl max-h-[85vh]">
-            <img
-              src={frameImageUrl}
-              alt="Fotograma ampliado"
-              className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl border border-cyan-500/40"
-            />
+          <div className="relative w-full max-w-3xl">
+            {/* Cinematic zoom container without poster titles */}
+            <div className="relative w-full aspect-[2.35/1] rounded-2xl overflow-hidden border-2 border-cyan-500/50 bg-black shadow-2xl flex items-center justify-center">
+              <img
+                src={frameImageUrl}
+                alt="Fotograma ampliado"
+                className="w-full h-full object-cover object-[center_28%] scale-[1.85] select-none filter contrast-105"
+              />
+              <div className="absolute top-0 inset-x-0 h-6 bg-black z-10 flex items-center justify-between px-3">
+                <span className="text-[10px] font-mono tracking-widest text-gray-400 uppercase">35mm Panavision Aspect</span>
+              </div>
+              <div className="absolute bottom-0 inset-x-0 h-6 bg-black z-10 flex items-center justify-between px-3">
+                <span className="text-[10px] font-mono tracking-wider text-cyan-400 uppercase">Fotograma de Rodaje</span>
+              </div>
+            </div>
+
+            {movie.photogramClue && (
+              <div className="mt-3 p-3 rounded-xl bg-black/80 border border-cyan-500/30 text-xs sm:text-sm text-gray-200 text-center italic">
+                "{movie.photogramClue}"
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setZoomImage(false)}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white"
+              className="absolute -top-3 -right-3 p-2 rounded-full bg-cyan-500 text-gray-950 font-bold shadow-lg"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

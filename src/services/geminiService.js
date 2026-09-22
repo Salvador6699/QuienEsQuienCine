@@ -220,7 +220,7 @@ PREGUNTA DEL DETECTIVE:
 Devuelve únicamente el JSON con "veredicto" y "detalle".`;
 
     try {
-      const rawText = await this._callGemini(prompt, systemPrompt, null, null, true, 60);
+      const rawText = await this._callGemini(prompt, systemPrompt, null, null, true);
       const parsed = this._extractJson(rawText);
       const validVerdicts = ['SI', 'NO', 'MAYOR', 'MENOR', 'INDETERMINADO'];
 
@@ -420,29 +420,59 @@ Responde estrictamente en JSON:
       }
     }
 
-    // 9. Country / Nationality
-    if (q.includes('espanol') || q.includes('espana')) {
-      const isSpanish = this._normalize(movie.country || '').includes('espana');
-      return {
-        veredicto: isSpanish ? 'SI' : 'NO',
-        detalle: isSpanish ? 'Producción española' : 'Producción extranjera'
-      };
+    // 9. Country / Nationality (Dynamic matcher for all countries)
+    const countries = [
+      { keys: ['italia', 'italiana', 'italiano'], id: 'italia', label: 'Producción italiana' },
+      { keys: ['espana', 'espanol', 'espanola'], id: 'espana', label: 'Producción española' },
+      { keys: ['francia', 'frances', 'francesa'], id: 'francia', label: 'Producción francesa' },
+      { keys: ['estados unidos', 'americana', 'americano', 'eeuu', 'hollywood', 'norteamericana'], id: 'estados unidos', label: 'Producción estadounidense' },
+      { keys: ['reino unido', 'inglaterra', 'britanica', 'britanico', 'inglesa'], id: 'reino unido', label: 'Producción británica' },
+      { keys: ['alemania', 'aleman', 'alemana'], id: 'alemania', label: 'Producción alemana' },
+      { keys: ['japon', 'japones', 'japonesa'], id: 'japon', label: 'Producción japonesa' },
+      { keys: ['corea', 'coreana', 'coreano'], id: 'corea', label: 'Producción coreana' },
+      { keys: ['mexico', 'mexicana', 'mexicano'], id: 'mexico', label: 'Producción mexicana' },
+      { keys: ['argentina', 'argentino', 'argentina'], id: 'argentina', label: 'Producción argentina' }
+    ];
+
+    const movieCountry = this._normalize(movie.country || '');
+    for (const c of countries) {
+      if (c.keys.some(k => q.includes(k))) {
+        const match = movieCountry.includes(c.id);
+        return {
+          veredicto: match ? 'SI' : 'NO',
+          detalle: match ? c.label : 'Producción de otro país'
+        };
+      }
     }
-    if (q.includes('estadounidense') || q.includes('americana') || q.includes('estados unidos') || q.includes('hollywood') || q.includes('eeuu')) {
-      const isUS = this._normalize(movie.country || '').includes('estados unidos');
-      return {
-        veredicto: isUS ? 'SI' : 'NO',
-        detalle: isUS ? 'Producción estadounidense' : 'Fuera de Estados Unidos'
-      };
-    }
-    if (q.includes('europeo') || q.includes('europa')) {
-      const isEuro = ['espana', 'francia', 'reino unido', 'italia', 'alemania'].some(c =>
-        this._normalize(movie.country || '').includes(c)
-      );
+
+    if (q.includes('europeo') || q.includes('europa') || q.includes('europea')) {
+      const euroCountries = ['espana', 'francia', 'italia', 'reino unido', 'alemania', 'suecia', 'dinamarca', 'belgica', 'irlanda'];
+      const isEuro = euroCountries.some(c => movieCountry.includes(c));
       return {
         veredicto: isEuro ? 'SI' : 'NO',
-        detalle: isEuro ? 'Origen europeo' : 'Origen no europeo'
+        detalle: isEuro ? 'Origen cinematográfico europeo' : 'Origen no europeo'
       };
+    }
+
+    // 10. Director checks
+    const directors = (movie.directors || []).map(d => this._normalize(d));
+    for (const d of directors) {
+      const parts = d.split(' ');
+      const lastName = parts[parts.length - 1];
+      if (q.includes(d) || (lastName.length > 3 && q.includes(lastName))) {
+        return { veredicto: 'SI', detalle: 'Dirección confirmada' };
+      }
+    }
+
+    // 11. Actor checks
+    const cast = (movie.cast || []).map(c => this._normalize(c));
+    for (const a of cast) {
+      const actorNameOnly = a.split('(')[0].trim();
+      const parts = actorNameOnly.split(' ');
+      const lastName = parts[parts.length - 1];
+      if (q.includes(actorNameOnly) || (lastName.length > 3 && q.includes(lastName))) {
+        return { veredicto: 'SI', detalle: 'Figura en el reparto' };
+      }
     }
 
     return null;
