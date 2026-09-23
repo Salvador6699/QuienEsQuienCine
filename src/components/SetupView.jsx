@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Film, Users, Sparkles, Key, Play, Trophy, ShieldAlert } from 'lucide-react';
-import { geminiService } from '../services/geminiService';
+import { Film, Users, Sparkles, Play, Trophy } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
 const AVATARS = ['🎬', '🕵️‍♂️', '🍿', '🎥', '📼', '📽️', '🎭', '🌟'];
 
-export default function SetupView({ onStartGame, onOpenApiKeyModal }) {
+export default function SetupView({ onStartGame }) {
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState(['Jugador 1', 'Jugador 2', 'Jugador 3', 'Jugador 4']);
-  const [hasApiKey, setHasApiKey] = useState(Boolean(geminiService.getApiKey()));
 
   const handlePlayerCountChange = (count) => {
     sounds.playClapperSnap();
@@ -141,23 +139,6 @@ export default function SetupView({ onStartGame, onOpenApiKeyModal }) {
               <span className="font-bold text-cyan-400">-20 pts</span>
             </div>
           </div>
-        </div>
-
-        {/* Status de Gemini API Key */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl bg-gray-900/60 border border-gray-800 mb-8">
-          <div className="flex items-center gap-2.5 text-xs text-gray-300">
-            <Key className="w-4 h-4 text-amber-400" />
-            <span>
-              Clave de Gemini: <strong className="text-emerald-400">Configurada y lista</strong>
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenApiKeyModal}
-            className="text-xs text-amber-400 hover:text-amber-300 underline font-medium"
-          >
-            Ver o cambiar clave
-          </button>
         </div>
 
         {/* Action Button */}

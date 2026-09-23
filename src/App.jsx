@@ -5,7 +5,6 @@ import MovieChooser from './components/MovieChooser';
 import DetectiveBoard from './components/DetectiveBoard';
 import GuessModal from './components/GuessModal';
 import ScoreboardModal from './components/ScoreboardModal';
-import ApiKeyModal from './components/ApiKeyModal';
 import RulesModal from './components/RulesModal';
 import { sounds } from './utils/audio';
 
@@ -26,7 +25,6 @@ export default function App() {
 
   // Modals & UI
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [apiKeyOpen, setApiKeyOpen] = useState(false);
   const [guessModalOpen, setGuessModalOpen] = useState(false);
   const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -105,6 +103,14 @@ export default function App() {
     setScoreboardOpen(true);
   };
 
+  // When detectives surrender
+  const handleSurrender = () => {
+    sounds.playClapperSnap();
+    setRoundWinner(null);
+    setPointsWon(0);
+    setScoreboardOpen(true);
+  };
+
   // When detective guesses incorrectly
   const handleFailedGuess = () => {
     handleNextDetectiveTurn();
@@ -126,26 +132,30 @@ export default function App() {
     setPlayers([]);
   };
 
+  const isPlaying = gamePhase === 'PLAYING';
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#0B0D13] text-gray-100 font-['Outfit',sans-serif]">
+    <div className={`w-full bg-[#0B0D13] text-gray-100 font-['Outfit',sans-serif] ${
+      isPlaying ? 'h-[100dvh] flex flex-col overflow-hidden' : 'min-h-screen flex flex-col'
+    }`}>
       {/* Top Navbar */}
       <Navbar
         gameStarted={gameStarted}
         roundNumber={roundNumber}
         director={currentDirector}
         onOpenRules={() => setRulesOpen(true)}
-        onOpenApiKeyModal={() => setApiKeyOpen(true)}
         onOpenScoreboard={() => setScoreboardOpen(true)}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
       />
 
       {/* Main Content Phases */}
-      <main className="flex-1 w-full max-w-7xl mx-auto py-2">
+      <main className={`w-full max-w-7xl mx-auto ${
+        isPlaying ? 'flex-1 min-h-0 flex flex-col overflow-hidden px-2 sm:px-4 py-1 sm:py-2' : 'flex-1 py-4 px-4'
+      }`}>
         {gamePhase === 'SETUP' && (
           <SetupView
             onStartGame={handleStartGame}
-            onOpenApiKeyModal={() => setApiKeyOpen(true)}
           />
         )}
 
@@ -169,6 +179,7 @@ export default function App() {
             onUseClue={handleUseClue}
             onAddQuestion={handleAddQuestion}
             onOpenGuessModal={() => setGuessModalOpen(true)}
+            onSurrender={handleSurrender}
             onNextDetectiveTurn={handleNextDetectiveTurn}
           />
         )}
@@ -197,20 +208,17 @@ export default function App() {
         onResetGame={handleResetGame}
       />
 
-      <ApiKeyModal
-        isOpen={apiKeyOpen}
-        onClose={() => setApiKeyOpen(false)}
-      />
-
       <RulesModal
         isOpen={rulesOpen}
         onClose={() => setRulesOpen(false)}
       />
 
-      {/* Footer */}
-      <footer className="w-full py-4 border-t border-gray-800/60 text-center text-xs text-gray-500">
-        CineClue • 100% Vercel Ready • Impulsado por Gemini 2.5 / 1.5 Flash
-      </footer>
+      {/* Footer only outside playing phase to maximize game screen */}
+      {!isPlaying && (
+        <footer className="w-full py-4 border-t border-gray-800/60 text-center text-xs text-gray-500">
+          CineClue • Impulsado por Gemini AI
+        </footer>
+      )}
     </div>
   );
 }

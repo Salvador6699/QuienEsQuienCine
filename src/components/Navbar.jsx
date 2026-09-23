@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clapperboard, Volume2, VolumeX, Key, HelpCircle, Trophy } from 'lucide-react';
+import { Clapperboard, Volume2, VolumeX, HelpCircle, Trophy } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
 export default function Navbar({
@@ -7,7 +7,6 @@ export default function Navbar({
   roundNumber,
   director,
   onOpenRules,
-  onOpenApiKeyModal,
   onOpenScoreboard,
   soundEnabled,
   setSoundEnabled
@@ -78,16 +77,6 @@ export default function Navbar({
             className="p-2 rounded-lg bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-amber-400 transition-colors border border-gray-700/50 cursor-pointer"
           >
             <HelpCircle className="w-4 h-4" />
-          </button>
-
-          {/* Gemini API Key Button */}
-          <button
-            type="button"
-            onClick={onOpenApiKeyModal}
-            title="Configurar clave Gemini"
-            className="p-2 rounded-lg bg-gray-800/60 hover:bg-gray-800 text-gray-300 hover:text-amber-400 transition-colors border border-gray-700/50 cursor-pointer"
-          >
-            <Key className="w-4 h-4" />
           </button>
         </div>
       </div>

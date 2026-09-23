@@ -26,9 +26,13 @@ export default function ScoreboardModal({
 
         {/* Round Resolution Banner */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
+          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
+            winner 
+              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300' 
+              : 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+          }`}>
             <Trophy className="w-3.5 h-3.5" />
-            ¡Ronda {roundNumber} Completada!
+            {winner ? `¡Ronda ${roundNumber} Completada!` : `Ronda ${roundNumber} Finalizada`}
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-1">
@@ -37,12 +41,18 @@ export default function ScoreboardModal({
                 ¡<strong className="text-amber-400">{winner.name}</strong> adivinó la película!
               </span>
             ) : (
-              'Fin de la ronda'
+              <span className="text-rose-300 flex items-center justify-center gap-2">
+                <span>🏳️</span> Los detectives se han rendido
+              </span>
             )}
           </h2>
-          {winner && (
+          {winner ? (
             <p className="text-sm font-semibold text-emerald-400">
               +{pointsWon} puntos sumados al marcador
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400">
+              Ningún detective acertó el título en esta ronda. Película secreta revelada:
             </p>
           )}
         </div>
